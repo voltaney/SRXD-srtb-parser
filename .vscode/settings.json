@@ -1,0 +1,26 @@
+{
+  // pythonファイルに関する設定
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  // autoDocstring設定
+  "autoDocstring.docstringFormat": "google",
+  // ruff設定
+  "ruff.format.args": ["--config=pyproject.toml"], // 未指定でも自動探索対象だが、一応明示。
+  "ruff.importStrategy": "fromEnvironment",
+  // mypy設定
+  "mypy-type-checker.args": [
+    // "--strict",
+    "--ignore-missing-imports",
+    "--disallow-untyped-defs"
+  ],
+  "mypy-type-checker.importStrategy": "fromEnvironment",
+  "files.exclude": {
+    "**/.git": false
+  }
+}
