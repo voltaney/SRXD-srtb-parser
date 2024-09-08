@@ -11,14 +11,11 @@
   // autoDocstring設定
   "autoDocstring.docstringFormat": "google",
   // ruff設定
+  "ruff.lint.args": ["--config=pyproject.toml"],
   "ruff.format.args": ["--config=pyproject.toml"], // 未指定でも自動探索対象だが、一応明示。
   "ruff.importStrategy": "fromEnvironment",
   // mypy設定
-  "mypy-type-checker.args": [
-    // "--strict",
-    "--ignore-missing-imports",
-    "--disallow-untyped-defs"
-  ],
+  "mypy-type-checker.args": ["--config-file=pyproject.toml"],
   "mypy-type-checker.importStrategy": "fromEnvironment",
   "files.exclude": {
     "**/.git": false
