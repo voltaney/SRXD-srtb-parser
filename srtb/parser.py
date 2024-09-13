@@ -5,7 +5,11 @@ loadメソッドを使うことで、Srtbクラスでパース結果を得られ
 
 import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TextIO
+
+from mutagen.mp3 import MP3
+from mutagen.oggvorbis import OggVorbis
 
 
 @dataclass(kw_only=True)
@@ -18,7 +22,24 @@ class ChartDifficulty:
 
 @dataclass(kw_only=True)
 class Srtb:
-    """Srtb構造を表現するクラス"""
+    """Srtbファイルの情報を保持するクラス
+
+    Args:
+        track_title (str): 曲名
+        track_subtitle (str): サブタイトル
+        track_artist (str): アーティスト名
+        charter (str): チャーター名
+        easy_difficulty (ChartDifficulty): Easy難易度
+        normal_difficulty (ChartDifficulty): Normal難易度
+        hard_difficulty (ChartDifficulty): Hard難易度
+        expert_difficulty (ChartDifficulty): Expert難易度
+        xd_difficulty (ChartDifficulty): XD難易度
+        albumart_asset_name (str): アルバムアートのアセット名
+        clip_asset_name (str): クリップのアセット名
+        self_path (Path): 自身のファイルパス
+        filereference (str): ファイルリファレンス(Spinshareの参照に利用可能)
+        clip_duration (int): クリップの再生時間(秒)
+    """
 
     # チャートメタ情報
     track_title: str
@@ -34,6 +55,10 @@ class Srtb:
     # ファイルメタ情報
     albumart_asset_name: str
     clip_asset_name: str
+    self_path: Path
+    file_reference: str
+    # クリップファイル
+    clip_duration: int | None = None
 
     def set_difficulty(self, difftype: int, diffrate: int) -> None:
         """srtbファイルの難易度を登録する
@@ -52,6 +77,24 @@ class Srtb:
         if difftype in difftype_map:
             difftype_map[difftype].is_defined = True
             difftype_map[difftype].level = diffrate
+
+    def read_clip_metadata(self) -> None:
+        """clipのメタデータを読み込む"""
+        audio_clip_dir = "AudioClips"
+        clip_file = self.self_path.parent / audio_clip_dir / f"{self.clip_asset_name}.mp3"
+        if not clip_file.exists():
+            clip_file = self.self_path.parent / audio_clip_dir / f"{self.clip_asset_name}.ogg"
+        if clip_file.exists():
+            if clip_file.suffix == ".mp3":
+                mp3_audio = MP3(str(clip_file))
+                self.clip_duration = int(mp3_audio.info.length)  # type: ignore
+            elif clip_file.suffix == ".ogg":
+                ogg_audio = OggVorbis(str(clip_file))
+                self.clip_duration = int(ogg_audio.info.length)  # type: ignore
+            else:
+                self.clip_duration = None
+        else:
+            self.clip_duration = None
 
 
 def load(srtb_file: TextIO) -> Srtb:
@@ -82,6 +125,8 @@ def load(srtb_file: TextIO) -> Srtb:
         charter=trackinfo["SO_TrackInfo_TrackInfo"]["charter"],
         albumart_asset_name=trackinfo["SO_TrackInfo_TrackInfo"]["albumArtReference"]["assetName"],
         clip_asset_name=trackinfo["SO_ClipInfo_ClipInfo_0"]["clipAssetReference"]["assetName"],
+        self_path=Path(srtb_file.name).resolve(),
+        file_reference=Path(srtb_file.name).resolve().stem,
     )
     if "subtitle" in trackinfo["SO_TrackInfo_TrackInfo"]:
         srtb.track_subtitle = trackinfo["SO_TrackInfo_TrackInfo"]["subtitle"]

@@ -16,4 +16,5 @@ chart_list = default_custom_chart_dir.glob("*.srtb")
 for c in itertools.islice(chart_list, 10):
     with open(c, "r", encoding="utf-8") as f:
         chart = srtb.load(f)
+    chart.read_clip_metadata()
     pprint(chart)
