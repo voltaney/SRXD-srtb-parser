@@ -6,3 +6,5 @@
 from srtb import parser
 
 load = parser.load
+Srtb = parser.Srtb
+ChartDifficulty = parser.ChartDifficulty
