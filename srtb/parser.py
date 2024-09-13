@@ -3,7 +3,6 @@
 loadメソッドを使うことで、Srtbクラスでパース結果を得られる。
 """
 
-# main.py
 import json
 from dataclasses import dataclass, field
 from typing import TextIO
@@ -33,8 +32,8 @@ class Srtb:
     expert_difficulty: ChartDifficulty = field(default_factory=lambda: ChartDifficulty())
     xd_difficulty: ChartDifficulty = field(default_factory=lambda: ChartDifficulty())
     # ファイルメタ情報
-    asset_name: str
-    file_created: int = 0
+    albumart_asset_name: str
+    clip_asset_name: str
 
     def set_difficulty(self, difftype: int, diffrate: int) -> None:
         """srtbファイルの難易度を登録する
@@ -81,7 +80,8 @@ def load(srtb_file: TextIO) -> Srtb:
         track_title=trackinfo["SO_TrackInfo_TrackInfo"]["title"],
         track_artist=trackinfo["SO_TrackInfo_TrackInfo"]["artistName"],
         charter=trackinfo["SO_TrackInfo_TrackInfo"]["charter"],
-        asset_name=trackinfo["SO_TrackInfo_TrackInfo"]["albumArtReference"]["assetName"],
+        albumart_asset_name=trackinfo["SO_TrackInfo_TrackInfo"]["albumArtReference"]["assetName"],
+        clip_asset_name=trackinfo["SO_ClipInfo_ClipInfo_0"]["clipAssetReference"]["assetName"],
     )
     if "subtitle" in trackinfo["SO_TrackInfo_TrackInfo"]:
         srtb.track_subtitle = trackinfo["SO_TrackInfo_TrackInfo"]["subtitle"]
