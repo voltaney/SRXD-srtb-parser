@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "srtb"
-version = "1.0.0"
+version = "1.0.1"
 license = "MIT"
 description = ""
 authors = ["voltaney <voltaney61@gmail.com>"]
