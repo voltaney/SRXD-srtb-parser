@@ -178,7 +178,6 @@ pyrightconfig.json
 # VS Code依存の設定追記
 # 参考: https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
 .vscode/*
-!.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
