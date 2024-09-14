@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "srtb"
-version = "1.0.1"
+version = "1.0.2"
 license = "MIT"
 description = ""
 authors = ["voltaney <voltaney61@gmail.com>"]
@@ -17,6 +17,10 @@ ruff = "^0.6.4"
 mypy = "^1.11.2"
 pytest = "^8.3.2"
 taskipy = "^1.13.0"
+
+
+[tool.poetry.group.test.dependencies]
+tqdm = "^4.66.5"
 
 [tool.poetry.scripts]
 srtb = "srtb.cli:main"
@@ -65,3 +69,4 @@ convention = "google" # Use Google-style docstrings.
 
 [tool.taskipy.tasks]
 example = "python examples/run_local_charts.py"
+test = "pytest -s"

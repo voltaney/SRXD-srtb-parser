@@ -1,8 +1,8 @@
 import os
-import random
 from pathlib import Path
 
 import pytest
+from tqdm import tqdm
 
 import srtb
 
@@ -14,7 +14,7 @@ def test_no_exceptions() -> None:
             raise ValueError("環境変数APPDATAが見つかりません")
         default_custom_chart_dir = Path(app_data_path) / r"..\LocalLow\Super Spin Digital\Spin Rhythm XD\Custom"
         chart_list = list(default_custom_chart_dir.glob("*.srtb"))
-        for c in random.sample(chart_list, 100):
+        for c in tqdm(chart_list):
             with open(c, "r", encoding="utf-8") as f:
                 srtb.load(f)
     except Exception as e:

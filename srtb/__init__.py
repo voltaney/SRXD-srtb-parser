@@ -3,8 +3,4 @@
 メタデータのみに対応しています。譜面データの読み込みは行われません。
 """
 
-from srtb import parser
-
-load = parser.load
-Srtb = parser.Srtb
-ChartDifficulty = parser.ChartDifficulty
+from srtb.parser import ChartDifficulty, Srtb, load

@@ -109,6 +109,9 @@ def load(srtb_file: TextIO) -> Srtb:
     whole_data = json.load(srtb_file)
     trackinfo = dict()
     for v in whole_data["largeStringValuesContainer"]["values"]:
+        if not isinstance(v, dict) or "key" not in v:
+            # vがdictでかつkeyが存在しないならスキップ
+            continue
         if v["key"].startswith(("SO_TrackInfo", "SO_ClipInfo")):
             trackinfo[v["key"]] = json.loads(v["val"])
         elif v["key"].startswith("SO_TrackData"):
