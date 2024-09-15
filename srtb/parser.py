@@ -11,6 +11,8 @@ from typing import TextIO
 from mutagen.mp3 import MP3
 from mutagen.oggvorbis import OggVorbis
 
+import srtb.exceptions as custom_exceptions
+
 
 @dataclass(kw_only=True)
 class ChartDifficulty:
@@ -97,43 +99,74 @@ class Srtb:
             self.clip_duration = None
 
 
-def load(srtb_file: TextIO) -> Srtb:
-    """_summary_
+def read_metainfo_from_srtb_file(srtb_file: TextIO) -> dict:
+    """srtbファイルをJSON形式にパースする
 
     Args:
-        srtb_file (TextIO): srtbファイルのファイルディスクリプタ
+        srtb_file (TextIO): srtbファイルのファイルオブジェクト
+
+    Raises:
+        srtb.exceptions.SrtbJsonFormatError: srtbファイルのJSONデコードに失敗した場合
+        srtb.exceptions.SrtbKeyError: srtbファイルに必要なパラメータが存在しない場合
 
     Returns:
-        Srtb: パース結果
+        dict: srtbファイルのメタ情報
     """
-    whole_data = json.load(srtb_file)
+    try:
+        whole_data = json.load(srtb_file)
+    except json.JSONDecodeError as e:
+        raise custom_exceptions.SrtbJsonFormatError("Srtbファイル全体はJSON形式である必要があります") from e
     trackinfo = dict()
-    for v in whole_data["largeStringValuesContainer"]["values"]:
-        if not isinstance(v, dict) or "key" not in v:
-            # vがdictでかつkeyが存在しないならスキップ
-            continue
-        if v["key"].startswith(("SO_TrackInfo", "SO_ClipInfo")):
-            trackinfo[v["key"]] = json.loads(v["val"])
-        elif v["key"].startswith("SO_TrackData"):
-            # sometrack has usuless value
-            if v["val"] == "null":
+    try:
+        for v in whole_data["largeStringValuesContainer"]["values"]:
+            if not isinstance(v, dict) or "key" not in v:
+                # 値がdictでかつkeyというキーが存在しないならスキップ
                 continue
-            # avoid parse whole track notes
-            trackdata_meta_json = v["val"].split(',"notes":')[0] + "}"
-            trackinfo[v["key"]] = json.loads(trackdata_meta_json)
+            if v["key"].startswith(("SO_TrackInfo", "SO_ClipInfo")):
+                # 基本的なチャート情報
+                trackinfo[v["key"]] = json.loads(v["val"])
+            elif v["key"].startswith("SO_TrackData"):
+                # 難易度情報
+                if v["val"] == "null":
+                    # 情報が無い場合はスキップ
+                    continue
+                # 譜面内容のパースは不要なので、メタ情報のみ取得
+                trackdata_meta_json = v["val"].split(',"notes":')[0] + "}"
+                trackinfo[v["key"]] = json.loads(trackdata_meta_json)
+    except KeyError as e:
+        raise custom_exceptions.SrtbKeyError("Srtbファイルに必要なパラメータが存在しません") from e
+    except json.JSONDecodeError as e:
+        raise custom_exceptions.SrtbJsonFormatError("Srtbファイルの特定の子要素もJSON形式である必要があります") from e
 
+    return trackinfo
+
+
+def create_srtb_from_metainfo(trackinfo: dict, srtb_file_path: Path) -> Srtb:
+    """srtbファイルのメタ情報からSrtbクラスを生成する
+
+    Args:
+        trackinfo (dict): srtbファイルのメタ情報
+        srtb_file_path (Path): srtbファイルのパス
+
+    Returns:
+        Srtb: Srtbクラス
+    """
+    # Srtbクラスを初期化
     srtb = Srtb(
         track_title=trackinfo["SO_TrackInfo_TrackInfo"]["title"],
         track_artist=trackinfo["SO_TrackInfo_TrackInfo"]["artistName"],
         charter=trackinfo["SO_TrackInfo_TrackInfo"]["charter"],
         albumart_asset_name=trackinfo["SO_TrackInfo_TrackInfo"]["albumArtReference"]["assetName"],
         clip_asset_name=trackinfo["SO_ClipInfo_ClipInfo_0"]["clipAssetReference"]["assetName"],
-        self_path=Path(srtb_file.name).resolve(),
-        file_reference=Path(srtb_file.name).resolve().stem,
+        self_path=srtb_file_path.resolve(),
+        file_reference=srtb_file_path.resolve().stem,
     )
+
+    # サブタイトルが存在する場合は設定
     if "subtitle" in trackinfo["SO_TrackInfo_TrackInfo"]:
         srtb.track_subtitle = trackinfo["SO_TrackInfo_TrackInfo"]["subtitle"]
 
+    # 難易度情報を登録
     for diff_meta in trackinfo["SO_TrackInfo_TrackInfo"]["difficulties"]:
         # compatibleのチェック
         if "_active" in diff_meta and not diff_meta["_active"]:
@@ -145,5 +178,27 @@ def load(srtb_file: TextIO) -> Srtb:
         if "difficultyRating" in trackdata:
             diffrate = trackdata["difficultyRating"]
         srtb.set_difficulty(trackdata["difficultyType"], diffrate)
+    return srtb
+
+
+def load(srtb_file: TextIO) -> Srtb:
+    """srtbファイルを読み込み、Srtbクラスを生成する
+
+    Args:
+        srtb_file (TextIO): srtbファイルのファイルオブジェクト
+
+    Raises:
+        custom_exceptions.SrtbKeyError: srtbファイルに必要なパラメータが存在しない場合
+
+    Returns:
+        Srtb: Srtbクラス
+    """
+    # srtbファイルからメタ情報を読み込む
+    trackinfo = read_metainfo_from_srtb_file(srtb_file)
+    try:
+        # メタ情報からSrtbクラスを生成
+        srtb = create_srtb_from_metainfo(trackinfo, Path(srtb_file.name))
+    except KeyError as e:
+        raise custom_exceptions.SrtbKeyError("Srtbファイルに必要なパラメータが存在しません") from e
 
     return srtb
